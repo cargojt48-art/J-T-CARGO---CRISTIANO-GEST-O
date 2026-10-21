@@ -47,7 +47,7 @@ export const PartnerAuditModal: React.FC<PartnerAuditModalProps> = ({
 
   if (!isOpen) return null;
 
-  const docKeyList: { key: keyof typeof partner.documents; label: string; number: number; desc: string }[] = [
+  const docKeyList: { key: keyof typeof partner.documents; label: string; number: number; desc: string; isFillOnly?: boolean }[] = [
     { key: 'cnpjCard', label: 'Cartão do CNPJ', number: 1, desc: 'Comprovante cadastral da Receita Federal' },
     { key: 'socialContract', label: 'Contrato Social e Alterações', number: 2, desc: 'Ato constitutivo registrado na Junta Comercial' },
     { key: 'legalRepDocument', label: 'Documento do Representante Legal', number: 3, desc: 'RG e CPF ou CNH dos sócios administradores' },
@@ -55,10 +55,10 @@ export const PartnerAuditModal: React.FC<PartnerAuditModalProps> = ({
     { key: 'rntrcCertificate', label: 'RNTRC Válido (ANTT)', number: 5, desc: 'Registro Nacional de Transportadores Rodoviários' },
     { key: 'bankProof', label: 'Dados Bancários da Empresa', number: 6, desc: 'Extrato ou carta bancária com titularidade e Chave PIX' },
     { key: 'insurancePolicy', label: 'Apólice de Seguro Vigente', number: 7, desc: 'RCTR-C e RC-DC (Opcional se contratante possuir apólice própria)' },
-    { key: 'stateRegistrationProof', label: 'Inscrição Estadual (IE)', number: 8, desc: 'Comprovante Sintegra/Sefaz quando contribuinte de ICMS' },
-    { key: 'citiesCoverageList', label: 'Lista de Cidades Cobertas', number: 9, desc: 'Detalhamento das rotas, regiões e cidades polos' },
-    { key: 'contactsSheet', label: 'Contatos dos Responsáveis', number: 10, desc: 'Ficha com telefones, WhatsApp e plantão operacional' },
-    { key: 'electronicSignatureDoc', label: 'E-mail para Assinatura Eletrônica', number: 11, desc: 'E-mail oficial com procuração para assinatura digital' },
+    { key: 'stateRegistrationProof', label: 'Inscrição Estadual (IE)', number: 8, desc: 'Dado fiscal informado no cadastro (Preenchimento)', isFillOnly: true },
+    { key: 'citiesCoverageList', label: 'Lista de Cidades Cobertas', number: 9, desc: 'Malha de atendimento informada no cadastro (Preenchimento)', isFillOnly: true },
+    { key: 'contactsSheet', label: 'Contatos dos Responsáveis', number: 10, desc: 'Contatos operacionais e plantão informados (Preenchimento)', isFillOnly: true },
+    { key: 'electronicSignatureDoc', label: 'E-mail para Assinatura Eletrônica', number: 11, desc: 'E-mail oficial para assinatura digital do contrato (Preenchimento)', isFillOnly: true },
     { key: 'sampleNfeCte', label: 'Exemplo de NF-e e/ou CT-e Emitido', number: 12, desc: 'Exemplo de conhecimento de transporte recente' },
   ];
 
@@ -446,32 +446,62 @@ export const PartnerAuditModal: React.FC<PartnerAuditModalProps> = ({
                             {item.desc}
                           </p>
 
-                          {/* File info */}
-                          <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs">
-                            {doc.fileName ? (
-                              <div className="flex items-center space-x-1.5 text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-                                <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                                <span className="font-medium font-mono text-[11px] truncate max-w-xs">{doc.fileName}</span>
-                                {doc.fileSize && <span className="text-slate-400 text-[10px]">({doc.fileSize})</span>}
+                          {/* File info OR Fill-only declared value */}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                            {item.isFillOnly ? (
+                              <div className="flex items-center space-x-2 bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1.5 rounded-xl font-medium">
+                                <span className="font-bold text-[10px] text-emerald-700 uppercase tracking-wider bg-emerald-100 px-1.5 py-0.5 rounded">
+                                  Dado Declarado no Cadastro:
+                                </span>
+                                <span className="text-slate-800 text-xs font-semibold">
+                                  {item.key === 'stateRegistrationProof' && (
+                                    currentPartner.isStateRegistrationExempt 
+                                      ? 'ISENTO de Inscrição Estadual' 
+                                      : (currentPartner.stateRegistration || 'Não informado')
+                                  )}
+                                  {item.key === 'citiesCoverageList' && (
+                                    currentPartner.coverage?.citiesServed?.length > 0
+                                      ? currentPartner.coverage.citiesServed.join(', ')
+                                      : 'Nenhuma cidade informada'
+                                  )}
+                                  {item.key === 'contactsSheet' && (
+                                    currentPartner.contacts?.length > 0 
+                                      ? currentPartner.contacts.map(c => `${c.name} (${c.role}) • Tel: ${c.phone} • E-mail: ${c.email}`).join(' | ')
+                                      : 'Nenhum contato informado'
+                                  )}
+                                  {item.key === 'electronicSignatureDoc' && (
+                                    currentPartner.electronicSignatureEmail || 'Nenhum e-mail informado'
+                                  )}
+                                </span>
                               </div>
                             ) : (
-                              <span className="text-slate-400 italic text-xs">Nenhum arquivo anexado</span>
-                            )}
+                              <>
+                                {doc.fileName ? (
+                                  <div className="flex items-center space-x-1.5 text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                                    <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span className="font-medium font-mono text-[11px] truncate max-w-xs">{doc.fileName}</span>
+                                    {doc.fileSize && <span className="text-slate-400 text-[10px]">({doc.fileSize})</span>}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 italic text-xs">Nenhum arquivo anexado</span>
+                                )}
 
-                            {doc.documentNumber && (
-                              <span className="text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-[11px]">
-                                Nº: <strong className="font-mono">{doc.documentNumber}</strong>
-                              </span>
-                            )}
+                                {doc.documentNumber && (
+                                  <span className="text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-[11px]">
+                                    Nº: <strong className="font-mono">{doc.documentNumber}</strong>
+                                  </span>
+                                )}
 
-                            {doc.expiryDate && (
-                              <span className={`text-[11px] px-2 py-0.5 rounded border ${
-                                new Date(doc.expiryDate) < new Date()
-                                  ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold'
-                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              }`}>
-                                Vencimento: {doc.expiryDate} {new Date(doc.expiryDate) < new Date() && '(VENCIDO)'}
-                              </span>
+                                {doc.expiryDate && (
+                                  <span className={`text-[11px] px-2 py-0.5 rounded border ${
+                                    new Date(doc.expiryDate) < new Date()
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold'
+                                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  }`}>
+                                    Vencimento: {doc.expiryDate} {new Date(doc.expiryDate) < new Date() && '(VENCIDO)'}
+                                  </span>
+                                )}
+                              </>
                             )}
                           </div>
 
@@ -544,7 +574,7 @@ export const PartnerAuditModal: React.FC<PartnerAuditModalProps> = ({
                         </button>
 
                         {/* Action: View / Download */}
-                        {doc.fileName && (
+                        {!item.isFillOnly && doc.fileName && (
                           <button
                             onClick={() => setPreviewDoc(doc)}
                             className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"

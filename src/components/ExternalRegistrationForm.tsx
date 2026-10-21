@@ -11,16 +11,23 @@ import {
   Mail, 
   Phone, 
   Truck, 
-  Sparkles, 
   ArrowRight, 
   ArrowLeft, 
   Check, 
   Copy, 
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  Plus,
+  X
 } from 'lucide-react';
 import { TransportPartner, DocumentItem } from '../types';
-import { BRAZIL_CITIES, BRAZIL_STATES, findCityCoords } from '../data/brazilCities';
+import { 
+  BRAZIL_CITIES, 
+  BRAZIL_STATES, 
+  findCityCoords, 
+  getCitiesByState, 
+  STATE_COORDINATES 
+} from '../data/brazilCities';
 
 interface ExternalRegistrationFormProps {
   onRegisterSuccess: (partner: TransportPartner) => void;
@@ -81,13 +88,66 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
   const [insuranceValidUntil, setInsuranceValidUntil] = useState('2027-06-30');
 
   // Abrangência e Operação
-  const [baseCity, setBaseCity] = useState('São Paulo');
-  const [baseState, setBaseState] = useState('SP');
+  const [baseState, setBaseState] = useState('ES');
+  const [baseCity, setBaseCity] = useState('Vila Velha');
   const [radiusKm, setRadiusKm] = useState<number>(350);
-  const [statesServed, setStatesServed] = useState<string[]>(['SP', 'RJ', 'MG']);
-  const [citiesServedInput, setCitiesServedInput] = useState('São Paulo, Campinas, Santos, São José dos Campos, Resende, Pouso Alegre');
+  const [statesServed, setStatesServed] = useState<string[]>(['ES']);
+  const [activeCityStateTab, setActiveCityStateTab] = useState<string>('ES');
+  const [selectedCities, setSelectedCities] = useState<string[]>(['Vila Velha', 'Vitória', 'Serra', 'Cariacica']);
+  const [customCityInput, setCustomCityInput] = useState<string>('');
+  const [citiesServedInput, setCitiesServedInput] = useState('Vila Velha, Vitória, Serra, Cariacica');
   const [operationTypes, setOperationTypes] = useState<string[]>(['lotacao', 'fracionado']);
   const [vehicleTypes, setVehicleTypes] = useState<string[]>(['toco_truck', 'carreta_ls']);
+
+  // Helpers para seleção dinâmica de cidades por estado
+  const handleBaseStateChange = (newUf: string) => {
+    setBaseState(newUf);
+    setActiveCityStateTab(newUf);
+    if (!statesServed.includes(newUf)) {
+      setStatesServed(prev => [...prev, newUf]);
+    }
+    const stateCities = getCitiesByState(newUf);
+    if (stateCities.length > 0) {
+      setBaseCity(stateCities[0].name);
+    }
+  };
+
+  const handleToggleCity = (cityName: string) => {
+    let next: string[];
+    if (selectedCities.includes(cityName)) {
+      next = selectedCities.filter(c => c !== cityName);
+    } else {
+      next = [...selectedCities, cityName];
+    }
+    setSelectedCities(next);
+    setCitiesServedInput(next.join(', '));
+  };
+
+  const handleAddCustomCity = () => {
+    const trimmed = customCityInput.trim();
+    if (!trimmed) return;
+    if (!selectedCities.includes(trimmed)) {
+      const next = [...selectedCities, trimmed];
+      setSelectedCities(next);
+      setCitiesServedInput(next.join(', '));
+    }
+    setCustomCityInput('');
+  };
+
+  const handleSelectAllStateCities = (uf: string) => {
+    const stateCities = getCitiesByState(uf).map(c => c.name);
+    const set = new Set([...selectedCities, ...stateCities]);
+    const next = Array.from(set);
+    setSelectedCities(next);
+    setCitiesServedInput(next.join(', '));
+  };
+
+  const handleClearStateCities = (uf: string) => {
+    const stateCities = getCitiesByState(uf).map(c => c.name);
+    const next = selectedCities.filter(c => !stateCities.includes(c));
+    setSelectedCities(next);
+    setCitiesServedInput(next.join(', '));
+  };
 
   // Contatos
   const [contactName, setContactName] = useState('');
@@ -112,74 +172,6 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
     }
   };
 
-  // Pre-fill demo data button
-  const handlePrefillDemo = () => {
-    setCnpj('35.819.044/0001-72');
-    setCompanyName('Expresso Pioneiro Logística e Transportes Rodoviários Ltda');
-    setTradeName('Pioneiro Cargas');
-    setStateRegistration('140.912.830.114');
-    setIsStateRegistrationExempt(false);
-    
-    setRepName('Eduardo Antunes de Carvalho');
-    setRepCpf('194.882.301-44');
-    setRepRg('34.992.110-8 SSP/SP');
-    setRepRole('Sócio-Administrador');
-    setSignatureEmail('assinaturas@pioneirocargas.com.br');
-
-    setStreet('Rodovia Anhanguera, Km 98');
-    setNumber('1500');
-    setComplement('Módulo 8 - Condomínio Logístico');
-    setDistrict('Techno Park');
-    setCity('Campinas');
-    setState('SP');
-    setZipCode('13069-780');
-
-    setRntrcNumber('90182471');
-    setRntrcCategory('ETC');
-    setRntrcValidUntil('2028-04-15');
-
-    setBankName('Banco Santander Brasil');
-    setBankCode('033');
-    setAgency('1240');
-    setAccount('884910-2');
-    setAccountType('corrente');
-    setPixKey('35819044000172');
-    setPixKeyType('cnpj');
-
-    setHasInsurance(true);
-    setInsurer('Tokio Marine Seguradora');
-    setPolicyNumber('POL-TK-2026-981');
-    setInsuranceValidUntil('2027-08-30');
-
-    setBaseCity('Campinas');
-    setBaseState('SP');
-    setRadiusKm(400);
-    setStatesServed(['SP', 'MG', 'RJ', 'PR']);
-    setCitiesServedInput('Campinas, São Paulo, Ribeirão Preto, Santos, São José dos Campos, Belo Horizonte, Resende, Curitiba');
-    setOperationTypes(['lotacao', 'fracionado', 'distribuicao_urbana']);
-    setVehicleTypes(['fiorino_vuc', 'toco_truck', 'carreta_ls']);
-
-    setContactName('Eduardo Antunes');
-    setContactRole('Diretor de Operações');
-    setContactPhone('(19) 99877-1234');
-    setContactEmail('eduardo@pioneirocargas.com.br');
-
-    // Simulate uploaded files
-    setUploadedFiles({
-      cnpjCard: { name: 'Cartao_CNPJ_Pioneiro.pdf', size: '310 KB' },
-      socialContract: { name: 'Contrato_Social_Consolidado.pdf', size: '1.6 MB' },
-      legalRepDocument: { name: 'CNH_Digital_Eduardo_Antunes.pdf', size: '420 KB' },
-      addressProof: { name: 'Comprovante_CPFL_Energia_Out2026.pdf', size: '390 KB' },
-      rntrcCertificate: { name: 'Certidao_RNTRC_ANTT_90182471.pdf', size: '540 KB' },
-      bankProof: { name: 'Comprovante_Santander_ContaCorrente.pdf', size: '280 KB' },
-      insurancePolicy: { name: 'Apolice_Cargas_Tokio_Marine.pdf', size: '2.1 MB' },
-      stateRegistrationProof: { name: 'Consulta_Cadesp_Sintegra_SP.pdf', size: '290 KB' },
-      citiesCoverageList: { name: 'Malha_Atendimento_Campinas_SP.xlsx', size: '180 KB' },
-      contactsSheet: { name: 'Ficha_Contatos_Plantao_24h.pdf', size: '150 KB' },
-      electronicSignatureDoc: { name: 'Procuracao_Assinatura_Eletronica.pdf', size: '210 KB' },
-      sampleNfeCte: { name: 'Exemplo_CTe_352610358190440001725700100004819.pdf', size: '490 KB' },
-    });
-  };
 
   const handleStateServedToggle = (uf: string) => {
     if (statesServed.includes(uf)) {
@@ -321,10 +313,43 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
         rntrcCertificate: makeDoc('rntrcCertificate', 'RNTRC Válido (ANTT)', 'Regulatório', true, { docNum: rntrcNumber, expiry: rntrcValidUntil }),
         bankProof: makeDoc('bankProof', 'Dados Bancários da Empresa', 'Financeiro', true),
         insurancePolicy: makeDoc('insurancePolicy', 'Apólice de Seguro Vigente (RCTR-C / RC-DC)', 'Seguros', false, { docNum: policyNumber, expiry: insuranceValidUntil }),
-        stateRegistrationProof: makeDoc('stateRegistrationProof', 'Inscrição Estadual (IE)', 'Fiscal', true),
-        citiesCoverageList: makeDoc('citiesCoverageList', 'Lista de Cidades Cobertas', 'Operacional', true),
-        contactsSheet: makeDoc('contactsSheet', 'Informações de Contato dos Responsáveis', 'Operacional', true),
-        electronicSignatureDoc: makeDoc('electronicSignatureDoc', 'E-mail para Assinatura Eletrônica do Contrato', 'Jurídico', true),
+        stateRegistrationProof: {
+          id: `doc-stateRegistrationProof-${Date.now()}`,
+          name: 'Inscrição Estadual (IE)',
+          category: 'Fiscal',
+          fileName: isStateRegistrationExempt ? 'Isento de Inscrição Estadual' : `IE: ${stateRegistration}`,
+          status: 'aprovado',
+          isRequired: false,
+          documentNumber: isStateRegistrationExempt ? 'ISENTO' : stateRegistration,
+          notes: isStateRegistrationExempt ? 'Empresa declarada isenta de Inscrição Estadual' : `Inscrição Estadual informada: ${stateRegistration}`,
+        },
+        citiesCoverageList: {
+          id: `doc-citiesCoverageList-${Date.now()}`,
+          name: 'Lista de Cidades Cobertas',
+          category: 'Operacional',
+          fileName: `${parsedCities.length} cidades cadastradas`,
+          status: 'aprovado',
+          isRequired: false,
+          notes: `Malha atendida informada: ${parsedCities.join(', ')}`,
+        },
+        contactsSheet: {
+          id: `doc-contactsSheet-${Date.now()}`,
+          name: 'Informações de Contato dos Responsáveis',
+          category: 'Operacional',
+          fileName: `${contactName || repName} (${contactRole})`,
+          status: 'aprovado',
+          isRequired: false,
+          notes: `Responsável: ${contactName || repName} | Tel: ${contactPhone} | E-mail: ${contactEmail || signatureEmail}`,
+        },
+        electronicSignatureDoc: {
+          id: `doc-electronicSignatureDoc-${Date.now()}`,
+          name: 'E-mail para Assinatura Eletrônica do Contrato',
+          category: 'Jurídico',
+          fileName: signatureEmail || contactEmail,
+          status: 'aprovado',
+          isRequired: false,
+          notes: `E-mail cadastrado para assinatura digital: ${signatureEmail || contactEmail}`,
+        },
         sampleNfeCte: makeDoc('sampleNfeCte', 'Exemplo de NF-e e/ou CT-e Emitido', 'Fiscal', true),
       },
       status: 'em_analise',
@@ -449,29 +474,20 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
               Inscrição de Transportadores & Prestadores de Serviço
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-              Cadastre sua empresa, informe seu raio de abrangência geográfica e anexe os 12 documentos necessários para homologação de rotas e contratos de frete.
+              Cadastre sua empresa, informe seu raio de abrangência geográfica e anexe os documentos comprobatórios necessários para homologação de rotas e contratos de frete.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handlePrefillDemo}
-            className="shrink-0 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center space-x-2 transition-all shadow-lg shadow-emerald-500/20 cursor-pointer"
-            title="Preencher todos os campos automaticamente com dados fictícios para testes rápidos"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Preencher Dados de Teste</span>
-          </button>
         </div>
       </div>
 
       {/* Steps Indicator */}
       <div className="grid grid-cols-4 gap-2 mb-8">
         {[
-          { step: 1, label: '1. Identificação' },
+          { step: 1, label: '1. Identificação & IE' },
           { step: 2, label: '2. RNTRC & Banco' },
-          { step: 3, label: '3. Abrangência' },
-          { step: 4, label: '4. 12 Documentos' },
+          { step: 3, label: '3. Abrangência & Contatos' },
+          { step: 4, label: '4. Documentos Anexos' },
         ].map((item) => (
           <button
             key={item.step}
@@ -487,10 +503,10 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
           >
             <div className="text-[11px] font-bold truncate">{item.label}</div>
             <div className="text-[9px] text-slate-400 mt-0.5 hidden sm:block">
-              {item.step === 1 && 'CNPJ, Representante & Assinatura'}
+              {item.step === 1 && 'CNPJ, IE & Assinatura'}
               {item.step === 2 && 'ANTT, Endereço & Conta'}
-              {item.step === 3 && 'Raio (km), Cidades & Frota'}
-              {item.step === 4 && 'Uploads obrigatórios'}
+              {item.step === 3 && 'Cidades, Frota & Contatos'}
+              {item.step === 4 && '8 Uploads Comprobatórios'}
             </div>
           </button>
         ))}
@@ -528,9 +544,12 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Inscrição Estadual (IE) *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center space-x-1.5">
+                    <span>8. Inscrição Estadual (IE) *</span>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">Preenchimento</span>
+                  </label>
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -626,14 +645,17 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
               </div>
             </div>
 
-            {/* E-mail para Assinatura Eletrônica do Contrato */}
+            {/* 11. E-mail para Assinatura Eletrônica do Contrato */}
             <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-2xl">
-              <label className="block text-xs font-bold text-emerald-950 mb-1 flex items-center space-x-1.5">
-                <Mail className="w-4 h-4 text-emerald-600" />
-                <span>E-mail para Assinatura Eletrônica do Contrato *</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-emerald-950 flex items-center space-x-1.5">
+                  <Mail className="w-4 h-4 text-emerald-600" />
+                  <span>11. E-mail para Assinatura Eletrônica do Contrato *</span>
+                </label>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Preenchimento Cadastral</span>
+              </div>
               <p className="text-[11px] text-emerald-800 mb-2">
-                Este e-mail receberá os links oficiais do DocuSign/ClickSign para formalização dos acordos operacionais e termos de frete.
+                Este e-mail receberá os links oficiais para assinatura eletrônica do contrato (DocuSign/ClickSign). Não requer anexo de arquivo.
               </p>
               <input
                 type="email"
@@ -896,27 +918,31 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
             {/* Base e Raio */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Cidade Polo / Base Operacional *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: São Paulo, Campinas, Curitiba..."
-                  value={baseCity}
-                  onChange={(e) => setBaseCity(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Estado Polo (UF) *</label>
                 <select
                   value={baseState}
-                  onChange={(e) => setBaseState(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                  onChange={(e) => handleBaseStateChange(e.target.value)}
+                  className="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-semibold"
                 >
                   {BRAZIL_STATES.map(uf => (
-                    <option key={uf} value={uf}>{uf}</option>
+                    <option key={uf} value={uf}>{uf} - {STATE_COORDINATES[uf]?.name || uf}</option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Cidade Polo / Base Operacional *</label>
+                <select
+                  value={baseCity}
+                  onChange={(e) => setBaseCity(e.target.value)}
+                  className="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-semibold"
+                >
+                  {getCitiesByState(baseState).map(c => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                  {!getCitiesByState(baseState).some(c => c.name === baseCity) && baseCity && (
+                    <option value={baseCity}>{baseCity}</option>
+                  )}
                 </select>
               </div>
 
@@ -941,22 +967,196 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
               </div>
             </div>
 
-            {/* Lista das Cidades Atendidas / Cobertas */}
+            {/* Estados Atendidos (Seleção de múltiplos estados de atuação) */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Lista das Cidades Atendidas / Cobertas (separadas por vírgula) *
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Estados Atendidos (Marque todos onde sua transportadora atua):
               </label>
-              <textarea
-                rows={3}
-                required
-                placeholder="Ex: São Paulo, Campinas, Santos, Sorocaba, São José dos Campos, Resende, Pouso Alegre, Curitiba..."
-                value={citiesServedInput}
-                onChange={(e) => setCitiesServedInput(e.target.value)}
-                className="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-              />
-              <p className="text-[11px] text-slate-500 mt-1">
-                Essas cidades serão exibidas no filtro de cobertura logística e no mapa interativo.
-              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {BRAZIL_STATES.map((uf) => {
+                  const isChecked = statesServed.includes(uf);
+                  return (
+                    <button
+                      key={uf}
+                      type="button"
+                      onClick={() => handleStateServedToggle(uf)}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                        isChecked
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {uf}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 9. Lista das Cidades Atendidas / Cobertas (Seleção Dinâmica e Clicável) */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center space-x-1.5">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span>9. Lista das Cidades Atendidas / Cobertas</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Selecione o estado e clique diretamente nas cidades atendidas para adicioná-las ou removê-las
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded self-start sm:self-auto">
+                  Seleção Interativa de Cidades
+                </span>
+              </div>
+
+              {/* Abas dos estados atendidos */}
+              <div className="flex items-center space-x-1 border-b border-slate-200 pb-2 overflow-x-auto">
+                <span className="text-xs font-bold text-slate-500 mr-2 shrink-0">Estado ativo:</span>
+                {(statesServed.length > 0 ? statesServed : [baseState]).map((uf) => (
+                  <button
+                    key={uf}
+                    type="button"
+                    onClick={() => setActiveCityStateTab(uf)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      activeCityStateTab === uf
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    {uf} ({STATE_COORDINATES[uf]?.name || uf})
+                  </button>
+                ))}
+              </div>
+
+              {/* Botões rápidos e Cidades Clicáveis daquele Estado */}
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-semibold text-slate-700">
+                    Cidades de <strong>{STATE_COORDINATES[activeCityStateTab]?.name || activeCityStateTab} ({activeCityStateTab})</strong>:
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAllStateCities(activeCityStateTab)}
+                      className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    >
+                      + Marcar Todas de {activeCityStateTab}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleClearStateCities(activeCityStateTab)}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-rose-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Desmarcar {activeCityStateTab}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grade de cidades clicáveis */}
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-3 bg-white border border-slate-200 rounded-xl">
+                  {getCitiesByState(activeCityStateTab).length === 0 ? (
+                    <p className="text-xs text-slate-400 italic">Nenhuma cidade pré-cadastrada para este estado. Utilize o campo abaixo para adicionar.</p>
+                  ) : (
+                    getCitiesByState(activeCityStateTab).map((city) => {
+                      const isSelected = selectedCities.includes(city.name);
+                      return (
+                        <button
+                          key={city.name}
+                          type="button"
+                          onClick={() => handleToggleCity(city.name)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                              : 'bg-slate-50 text-slate-700 border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/40'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <Check className="w-3.5 h-3.5 text-white" />
+                          ) : (
+                            <Plus className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                          <span>{city.name}</span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Campo para Adicionar Outro Bairro ou Cidade (Ex: Ulisses Guimarães, Praia da Costa, etc.) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Adicionar outra cidade, polo ou bairro específico:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Ex: Ulisses Guimarães, Praia da Costa, Polo Industrial..."
+                    value={customCityInput}
+                    onChange={(e) => setCustomCityInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomCity();
+                      }
+                    }}
+                    className="flex-1 text-xs px-3.5 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomCity}
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center space-x-1.5 transition-colors cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Adicionar</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Lista Visual das Cidades Selecionadas */}
+              <div className="pt-2 border-t border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-900">
+                    Cidades Cobertas Selecionadas (<strong className="text-emerald-600">{selectedCities.length}</strong>):
+                  </span>
+                  {selectedCities.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCities([]);
+                        setCitiesServedInput('');
+                      }}
+                      className="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                    >
+                      Limpar Todas
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-white border border-slate-200 rounded-xl">
+                  {selectedCities.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic py-1">Nenhuma cidade selecionada. Clique nas cidades acima para montar sua malha.</p>
+                  ) : (
+                    selectedCities.map((c) => (
+                      <span
+                        key={c}
+                        className="inline-flex items-center space-x-1 px-2.5 py-1 bg-emerald-50 text-emerald-900 border border-emerald-300 rounded-lg text-xs font-semibold"
+                      >
+                        <span>{c}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCity(c)}
+                          className="text-emerald-700 hover:text-rose-600 ml-1 p-0.5 rounded-full hover:bg-emerald-100"
+                          title={`Remover ${c}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Tipos de Veículos da Frota */}
@@ -1048,6 +1248,71 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
               )}
             </div>
 
+            {/* 10. Informações de Contato dos Responsáveis (Preenchimento) */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
+                    <Phone className="w-4 h-4 text-emerald-600" />
+                    <span>10. Informações de Contato dos Responsáveis</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Contatos operacionais, comercial e plantão 24h para agendamentos e chamados de carga (Preenchimento direto)
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                  Preenchimento Cadastral
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nome do Responsável *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Carlos Silva"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    className="w-full text-xs px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Cargo / Departamento *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Operações / Plantão"
+                    value={contactRole}
+                    onChange={(e) => setContactRole(e.target.value)}
+                    className="w-full text-xs px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Telefone / WhatsApp *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="(00) 00000-0000"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    className="w-full text-xs px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">E-mail Operacional *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="operacional@empresa.com.br"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    className="w-full text-xs px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-between pt-4">
               <button
                 type="button"
@@ -1063,27 +1328,58 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
                 onClick={() => setCurrentStep(4)}
                 className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center space-x-2 transition-all cursor-pointer"
               >
-                <span>Avançar para Anexo dos 12 Documentos</span>
+                <span>Avançar para Anexo de Documentos</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 4: Upload dos 12 Documentos Cadastrais */}
+        {/* STEP 4: Upload dos 8 Documentos Comprobatórios */}
         {currentStep === 4 && (
           <div className="space-y-6 animate-in fade-in">
-            <div className="border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                <FileText className="w-5 h-5 text-emerald-600" />
-                <span>Passo 4: Anexo dos 12 Documentos Solicitados</span>
-              </h3>
-              <p className="text-xs text-slate-500">
-                Faça o upload dos arquivos em formato PDF, PNG, JPG ou XML.
-              </p>
+            <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
+                  <FileText className="w-5 h-5 text-emerald-600" />
+                  <span>Passo 4: Anexo de Documentos Comprobatórios</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Faça o upload dos 8 documentos em formato PDF, PNG, JPG ou XML.
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl shrink-0">
+                8 Documentos para Anexo
+              </span>
             </div>
 
-            {/* Document upload grid */}
+            {/* Banner explicativo: itens preenchidos sem necessidade de anexo */}
+            <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-xs text-emerald-950">
+              <div className="font-bold mb-1.5 flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Itens com Preenchimento Concluído (Sem necessidade de anexo de arquivo):</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1 text-[11px]">
+                <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
+                  <strong className="text-slate-800 block">8. Inscrição Estadual:</strong>
+                  <span className="text-slate-600">{isStateRegistrationExempt ? 'Isento' : (stateRegistration || 'Preenchida no Passo 1')}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
+                  <strong className="text-slate-800 block">9. Cidades Cobertas:</strong>
+                  <span className="text-slate-600 truncate block">{citiesServedInput ? 'Cidades informadas' : 'Preenchida no Passo 3'}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
+                  <strong className="text-slate-800 block">10. Contatos dos Responsáveis:</strong>
+                  <span className="text-slate-600 truncate block">{contactName ? `${contactName} (${contactRole})` : 'Informado no Passo 3'}</span>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
+                  <strong className="text-slate-800 block">11. E-mail de Assinatura:</strong>
+                  <span className="text-slate-600 truncate block">{signatureEmail || 'Informado no Passo 1'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Document upload grid: apenas os 8 documentos que exigem arquivos anexos */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { key: 'cnpjCard', label: '1. Cartão do CNPJ', req: true, desc: 'Comprovante recente emitido no site da Receita' },
@@ -1093,10 +1389,6 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
                 { key: 'rntrcCertificate', label: '5. RNTRC válido (ANTT)', req: true, desc: 'Certidão ou cartão do transportador emitido na ANTT' },
                 { key: 'bankProof', label: '6. Dados bancários da empresa', req: true, desc: 'Comprovante de conta corrente ou declaração do banco' },
                 { key: 'insurancePolicy', label: '7. Apólice(s) de seguro vigente(s)', req: false, desc: 'RCTR-C / RC-DC (Opcional)' },
-                { key: 'stateRegistrationProof', label: '8. Inscrição Estadual (IE)', req: true, desc: 'Comprovante do Sintegra/Sefaz quando aplicável' },
-                { key: 'citiesCoverageList', label: '9. Lista das cidades atendidas/cobertas', req: true, desc: 'Tabela ou descritivo da malha de atendimento' },
-                { key: 'contactsSheet', label: '10. Informações de contato dos responsáveis', req: true, desc: 'Contatos operacionais, comercial e plantão' },
-                { key: 'electronicSignatureDoc', label: '11. E-mail para assinatura eletrônica do contrato', req: true, desc: 'Termo de indicação ou procuração de signatário' },
                 { key: 'sampleNfeCte', label: '12. Exemplo de NF-e e/ou CT-e emitido pela empresa', req: true, desc: 'Conhecimento de transporte eletrônico ou nota fiscal recente' },
               ].map((item) => {
                 const uploaded = uploadedFiles[item.key];

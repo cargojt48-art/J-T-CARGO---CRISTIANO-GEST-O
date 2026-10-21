@@ -43,6 +43,13 @@ export function calculateComplianceScore(partner: TransportPartner): number {
     totalApplicable++;
     if (doc.status === 'aprovado') {
       approvedCount++;
+    } else if (
+      (key === 'stateRegistrationProof' && (partner.stateRegistration || partner.isStateRegistrationExempt)) ||
+      (key === 'citiesCoverageList' && partner.coverage?.citiesServed?.length > 0) ||
+      (key === 'contactsSheet' && partner.contacts?.length > 0) ||
+      (key === 'electronicSignatureDoc' && partner.electronicSignatureEmail)
+    ) {
+      approvedCount++;
     }
   });
 

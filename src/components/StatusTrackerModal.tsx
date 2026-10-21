@@ -208,7 +208,7 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-slate-900 text-sm">Status Detalhado dos 12 Documentos</h4>
+                <h4 className="font-bold text-slate-900 text-sm">Status dos Requisitos e Documentos</h4>
                 <p className="text-xs text-slate-500">Documentos com pendência possuem opção direta para reenvio</p>
               </div>
               <span className="text-xs font-bold text-slate-700 bg-white px-3 py-1 rounded-xl border border-slate-200">
@@ -221,6 +221,7 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
                 const doc = searchedPartner.documents[key];
                 const isRejected = doc.status === 'reprovado';
                 const isPending = doc.status === 'pendente';
+                const isFillOnly = ['stateRegistrationProof', 'citiesCoverageList', 'contactsSheet', 'electronicSignatureDoc'].includes(key);
 
                 return (
                   <div key={key} className={`p-4 transition-colors ${isRejected ? 'bg-rose-50/40' : ''}`}>
@@ -228,15 +229,27 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
                       <div>
                         <div className="flex items-center space-x-2">
                           <h5 className="font-bold text-slate-900 text-xs sm:text-sm">{doc.name}</h5>
-                          {doc.isRequired && (
+                          {isFillOnly ? (
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-semibold border border-emerald-200">
+                              Preenchimento
+                            </span>
+                          ) : doc.isRequired ? (
                             <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded font-semibold border border-rose-200">
                               Obrigatório
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded font-medium">
+                              Opcional
                             </span>
                           )}
                         </div>
 
                         <div className="flex items-center space-x-2 text-xs text-slate-500 mt-1">
-                          {doc.fileName ? (
+                          {isFillOnly ? (
+                            <span className="font-medium text-[11px] text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                              Dado Informado: {doc.fileName || 'Informado no cadastro'}
+                            </span>
+                          ) : doc.fileName ? (
                             <span className="font-mono text-[11px] text-slate-700">
                               Arquivo: {doc.fileName} {doc.fileSize && `(${doc.fileSize})`}
                             </span>

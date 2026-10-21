@@ -1,5 +1,5 @@
 {
-  "name": "TranspoDoc - Homologação & Cobertura de Transportadores",
+  "name": "J&T CARGO - CRISTIANO - Homologação & Cobertura de Transportadores",
   "description": "Sistema de gestão e credenciamento externo de transportadores, auditoria de documentos (CNPJ, RNTRC, Contrato, etc.) e mapa de geolocalização e raio de abrangência.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

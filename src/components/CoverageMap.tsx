@@ -7,7 +7,9 @@ import {
 import { 
   BRAZIL_CITIES, 
   BRAZIL_STATES, 
-  BrazilCity 
+  BrazilCity,
+  STATE_COORDINATES,
+  getCitiesByState
 } from '../data/brazilCities';
 import { 
   MapPin, 
@@ -83,11 +85,10 @@ export const CoverageMap: React.FC<CoverageMapProps> = ({
       zoomControl: true,
     });
 
-    // Sleek vector-style basemap tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 18,
-      subdomains: 'abcd',
+    // Clean OpenStreetMap tiles (100% free, crisp, no watermark)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
     }).addTo(map);
 
     markersLayerRef.current = L.layerGroup().addTo(map);
@@ -100,6 +101,19 @@ export const CoverageMap: React.FC<CoverageMapProps> = ({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Fly to state center when stateFilter changes
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (stateFilter !== 'all' && STATE_COORDINATES[stateFilter]) {
+      const stateData = STATE_COORDINATES[stateFilter];
+      map.flyTo([stateData.lat, stateData.lng], stateData.zoom, { duration: 1.2 });
+    } else if (stateFilter === 'all') {
+      map.flyTo([-19.5, -48.0], 5, { duration: 1.2 });
+    }
+  }, [stateFilter]);
 
   // Update Markers and Radius Circles
   useEffect(() => {
@@ -388,10 +402,12 @@ export const CoverageMap: React.FC<CoverageMapProps> = ({
                 }}
                 className="flex-1 bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800"
               >
-                <option value="">Selecione uma cidade de entrega...</option>
-                {BRAZIL_CITIES.map(c => (
+                <option value="">
+                  {stateFilter !== 'all' ? `Cidades de ${stateFilter}...` : 'Selecione uma cidade de entrega...'}
+                </option>
+                {(stateFilter !== 'all' ? getCitiesByState(stateFilter) : BRAZIL_CITIES).map(c => (
                   <option key={`${c.name}-${c.state}`} value={`${c.name}-${c.state}`}>
-                    {c.name} ({c.state}) - {c.region}
+                    {c.name} ({c.state})
                   </option>
                 ))}
               </select>

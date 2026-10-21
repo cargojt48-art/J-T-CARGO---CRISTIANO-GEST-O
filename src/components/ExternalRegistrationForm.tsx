@@ -33,12 +33,16 @@ interface ExternalRegistrationFormProps {
   onRegisterSuccess: (partner: TransportPartner) => void;
   onGoToDashboard: () => void;
   onGoToMap: () => void;
+  isExternalView?: boolean;
+  onGoToTrackProtocol?: () => void;
 }
 
 export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> = ({
   onRegisterSuccess,
   onGoToDashboard,
   onGoToMap,
+  isExternalView = false,
+  onGoToTrackProtocol,
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [submittedProtocol, setSubmittedProtocol] = useState<string | null>(null);
@@ -430,21 +434,39 @@ export const ExternalRegistrationForm: React.FC<ExternalRegistrationFormProps> =
 
           {/* Navigation Action Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={onGoToDashboard}
-              className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
-            >
-              Ir para o Dashboard de Auditoria &rarr;
-            </button>
+            {!isExternalView ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onGoToDashboard}
+                  className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  Ir para o Dashboard de Auditoria &rarr;
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onGoToMap}
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  Ver Cobertura no Mapa &rarr;
+                </button>
+              </>
+            ) : (
+              onGoToTrackProtocol && (
+                <button
+                  type="button"
+                  onClick={onGoToTrackProtocol}
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center space-x-2"
+                >
+                  <Search className="w-4 h-4" />
+                  <span>Acompanhar Status do meu Protocolo &rarr;</span>
+                </button>
+              )
+            )}
 
             <button
-              onClick={onGoToMap}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
-            >
-              Ver Cobertura no Mapa &rarr;
-            </button>
-
-            <button
+              type="button"
               onClick={() => {
                 setSubmittedProtocol(null);
                 setCurrentStep(1);

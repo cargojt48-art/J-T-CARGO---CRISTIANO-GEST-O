@@ -19,12 +19,14 @@ interface StatusTrackerModalProps {
   partners: TransportPartner[];
   onUpdatePartner: (partner: TransportPartner) => void;
   onGoToDashboard: () => void;
+  isExternalView?: boolean;
 }
 
 export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
   partners,
   onUpdatePartner,
   onGoToDashboard,
+  isExternalView = false,
 }) => {
   const [protocolInput, setProtocolInput] = useState<string>('');
   const [searchedPartner, setSearchedPartner] = useState<TransportPartner | null>(null);
@@ -111,20 +113,22 @@ export const StatusTrackerModal: React.FC<StatusTrackerModalProps> = ({
           </button>
         </form>
 
-        {/* Quick Demo Shortcuts */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-400">Exemplos cadastrados:</span>
-          {partners.slice(0, 3).map((p) => (
-            <button
-              key={p.protocol}
-              type="button"
-              onClick={() => handleQuickSelect(p.protocol)}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-mono rounded-lg border border-slate-700 text-[11px] transition-colors cursor-pointer"
-            >
-              {p.protocol} ({p.status === 'homologado' ? 'Aprovado' : 'Com Pendência'})
-            </button>
-          ))}
-        </div>
+        {/* Quick Demo Shortcuts - HIDE IF EXTERNAL */}
+        {!isExternalView && (
+          <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-400">Exemplos cadastrados:</span>
+            {partners.slice(0, 3).map((p) => (
+              <button
+                key={p.protocol}
+                type="button"
+                onClick={() => handleQuickSelect(p.protocol)}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-mono rounded-lg border border-slate-700 text-[11px] transition-colors cursor-pointer"
+              >
+                {p.protocol} ({p.status === 'homologado' ? 'Aprovado' : 'Com Pendência'})
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Result Display */}

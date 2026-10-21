@@ -172,10 +172,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={onResetData}
-              title="Restaurar dados de demonstração"
-              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-700"
+              title="Sincronizar / Atualizar dados do banco"
+              className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-700"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
           </div>
         </div>

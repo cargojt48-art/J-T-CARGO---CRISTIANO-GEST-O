@@ -115,25 +115,16 @@ export default function App() {
     await deletePartner(id);
   };
 
-  // Reset to initial mock data (and seed to Supabase if connected)
-  const handleResetData = async () => {
-    if (confirm('Deseja restaurar os dados de demonstração com as transportadoras padrão?')) {
-      setIsLoading(true);
-      try {
-        if (isSupabaseConfigured) {
-          await seedInitialPartners();
-          const list = await getPartners();
-          setPartners(list);
-        } else {
-          const initial = resetToInitial();
-          setPartners(initial);
-        }
-        alert('Dados restaurados com sucesso!');
-      } catch (err) {
-        console.error('Erro ao restaurar:', err);
-      } finally {
-        setIsLoading(false);
-      }
+  // Refresh/sync partners from database
+  const handleRefreshData = async () => {
+    setIsLoading(true);
+    try {
+      const list = await getPartners();
+      setPartners(list);
+    } catch (err) {
+      console.error('Erro ao sincronizar dados:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -214,7 +205,7 @@ export default function App() {
           currentTab={currentTab}
           setCurrentTab={handleSetTab}
           partners={partners}
-          onResetData={handleResetData}
+          onResetData={handleRefreshData}
           isSupabaseConnected={isSupabaseConfigured}
           isLoading={isLoading}
         />

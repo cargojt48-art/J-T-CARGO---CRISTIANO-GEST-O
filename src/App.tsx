@@ -93,8 +93,10 @@ export default function App() {
 
   // Delete partner
   const handleDeletePartner = async (id: string) => {
-    const updatedList = partners.filter(p => p.id !== id);
-    setPartners(updatedList);
+    setPartners(prev => prev.filter(p => p.id !== id));
+    if (auditPartner?.id === id) {
+      setAuditPartner(null);
+    }
     await deletePartner(id);
   };
 

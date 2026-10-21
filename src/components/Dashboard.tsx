@@ -42,6 +42,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [stateFilter, setStateFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+  const [partnerToDelete, setPartnerToDelete] = useState<TransportPartner | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletedToast, setDeletedToast] = useState<string | null>(null);
 
   // KPIs
   const totalCount = partners.length;
@@ -507,13 +510,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           </button>
 
                           <button
-                            onClick={() => {
-                              if (confirm(`Deseja remover o parceiro ${partner.companyName}?`)) {
-                                onDeletePartner(partner.id);
-                              }
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPartnerToDelete(partner);
                             }}
                             className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Excluir"
+                            title="Excluir parceiro"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -606,17 +609,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <button
-                    onClick={() => onGoToMapForPartner(partner)}
-                    className="text-xs font-semibold text-slate-600 hover:text-emerald-600 flex items-center space-x-1"
-                  >
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Ver no Mapa</span>
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => onGoToMapForPartner(partner)}
+                      className="text-xs font-semibold text-slate-600 hover:text-emerald-600 flex items-center space-x-1 cursor-pointer"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Ver no Mapa</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPartnerToDelete(partner);
+                      }}
+                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      title="Excluir parceiro"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
                   <button
+                    type="button"
                     onClick={() => onOpenAudit(partner)}
-                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center space-x-1"
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center space-x-1 cursor-pointer"
                   >
                     <span>Auditar Documentos</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -625,6 +644,80 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {partnerToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 text-center space-y-4">
+            <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+              <Trash2 className="w-8 h-8" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Excluir Transportadora?</h3>
+              <p className="text-sm text-slate-600 mt-2">
+                Tem certeza de que deseja remover <strong className="text-slate-900 font-bold">{partnerToDelete.companyName}</strong> da base de dados e do mapa?
+              </p>
+              <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium">
+                Esta ação apagará permanentemente o cadastro e seus 12 documentos vinculados.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setPartnerToDelete(null)}
+                className="w-1/2 py-2.5 px-4 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  const name = partnerToDelete.companyName;
+                  try {
+                    await onDeletePartner(partnerToDelete.id);
+                    setDeletedToast(`Transportadora "${name}" excluída com sucesso!`);
+                    setTimeout(() => setDeletedToast(null), 4000);
+                  } catch (err) {
+                    console.error('Erro ao excluir parceiro:', err);
+                  } finally {
+                    setIsDeleting(false);
+                    setPartnerToDelete(null);
+                  }
+                }}
+                className="w-1/2 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition-all cursor-pointer flex items-center justify-center space-x-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Sim, Excluir</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {deletedToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center space-x-3 animate-in slide-in-from-bottom duration-300">
+          <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-semibold text-slate-200">{deletedToast}</span>
         </div>
       )}
 

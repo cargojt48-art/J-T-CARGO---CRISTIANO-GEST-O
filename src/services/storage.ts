@@ -2,27 +2,38 @@ import { TransportPartner, DocStatus, PartnerStatus } from '../types';
 import { INITIAL_PARTNERS } from '../data/initialPartners';
 
 const STORAGE_KEY = 'transpodoc_partners_v1';
+const INITIALIZED_KEY = 'transpodoc_initialized_v1';
 
 export function loadPartners(): TransportPartner[] {
   try {
+    const isInitialized = localStorage.getItem(INITIALIZED_KEY);
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
+
+    if (!isInitialized) {
+      // First time ever opening the app: initialize demo data
+      localStorage.setItem(INITIALIZED_KEY, 'true');
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PARTNERS));
       return INITIAL_PARTNERS;
     }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+
+    if (!raw) {
+      return [];
     }
-    return INITIAL_PARTNERS;
+
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed; // Can be [] if user deleted all records
+    }
+    return [];
   } catch (err) {
     console.error('Error loading partners from localStorage:', err);
-    return INITIAL_PARTNERS;
+    return [];
   }
 }
 
 export function savePartners(partners: TransportPartner[]): void {
   try {
+    localStorage.setItem(INITIALIZED_KEY, 'true');
     localStorage.setItem(STORAGE_KEY, JSON.stringify(partners));
   } catch (err) {
     console.error('Error saving partners to localStorage:', err);
@@ -70,6 +81,7 @@ export function determineSuggestedStatus(partner: TransportPartner): PartnerStat
 }
 
 export function resetToInitial(): TransportPartner[] {
+  localStorage.setItem(INITIALIZED_KEY, 'true');
   localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PARTNERS));
   return INITIAL_PARTNERS;
 }

@@ -107,16 +107,28 @@ export async function getPartners(): Promise<TransportPartner[]> {
       return loadLocalPartners();
     }
 
+    const hasBeenSeeded = localStorage.getItem('supabase_initial_seeded_v1');
+
     if (data && data.length > 0) {
+      localStorage.setItem('supabase_initial_seeded_v1', 'true');
       const parsed = data.map(mapRowToPartner);
       saveLocalPartners(parsed); // Sync local cache
       return parsed;
     }
 
-    // Se a tabela estiver vazia, faz o seed dos parceiros iniciais para o Supabase
-    console.info('[PartnerService] Supabase table is empty. Seeding initial data...');
-    await seedInitialPartners();
-    return INITIAL_PARTNERS;
+    // Se data for vazia:
+    // Se nunca foi inicializado, faz o seed apenas na primeiríssima vez
+    if (!hasBeenSeeded) {
+      console.info('[PartnerService] First run on database. Seeding initial data once...');
+      localStorage.setItem('supabase_initial_seeded_v1', 'true');
+      await seedInitialPartners();
+      return INITIAL_PARTNERS;
+    }
+
+    // Se já foi inicializado anteriormente e está vazio, significa que o usuário excluiu os registros!
+    // Manter a lista vazia respeitando a decisão do usuário.
+    saveLocalPartners([]);
+    return [];
   } catch (err) {
     console.error('[PartnerService] Unexpected error fetching partners:', err);
     return loadLocalPartners();
